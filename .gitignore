@@ -1,0 +1,18 @@
+# Python virtualenv (~800 MB)
+.venv/
+__pycache__/
+*.pyc
+
+# Third-party cloned repo (has its own git history; not part of this work)
+SupplyChainv0_gym/
+
+# Trained-model artifacts — regenerable via train.py; kept out to stay text-only
+*.zip
+
+# Source papers / extracted text (copyrighted; see README for links)
+*.pdf
+thesis_text.txt
+fig1c_general_network.png
+
+# Run logs
+logs/
