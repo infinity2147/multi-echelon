@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Multi-Echelon Inventory to Deep RL — a study guide</title>
+<style>
+  :root{
+    --bg:#fbfcfe; --panel:#f3f6fc; --ink:#1f2533; --muted:#5c667c;
+    --acc:#2563eb; --acc2:#0d9488; --warn:#b4690e; --purple:#7c3aed;
+    --line:#e3e8f2; --code:#f4f6fa; --codeink:#9a3b12;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+  .wrap{display:flex;max-width:1180px;margin:0 auto;gap:32px;padding:0 20px}
+  /* sidebar */
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;
+    width:272px;padding:26px 14px 60px 0;border-right:1px solid var(--line);flex:0 0 272px}
+  nav h2{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  nav a{display:block;color:var(--muted);padding:4px 8px;border-radius:6px;font-size:14px}
+  nav a:hover{background:var(--panel);color:var(--ink);text-decoration:none}
+  nav .lead{color:var(--ink);font-weight:700;font-size:15px;margin-bottom:4px}
+  /* main */
+  main{flex:1 1 auto;min-width:0;padding:34px 0 120px}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;color:#11151f}
+  .sub{color:var(--muted);font-size:17px;margin:0 0 8px}
+  h2.sec{font-size:24px;margin:54px 0 6px;padding-top:14px;border-top:1px solid var(--line);color:#11151f}
+  h3{font-size:19px;margin:30px 0 6px;color:#222a3a}
+  h4{font-size:16px;margin:22px 0 4px;color:var(--acc2)}
+  ul,ol{padding-left:22px} li{margin:5px 0}
+  code{background:var(--code);padding:1px 6px;border-radius:5px;border:1px solid var(--line);
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13.5px;color:var(--codeink)}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto}
+  pre code{background:none;border:none;padding:0;color:#243049;font-size:13px;line-height:1.55}
+  .box{border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:16px 0;background:var(--panel)}
+  .key{border-left:4px solid var(--acc);background:#eef3ff} .key b{color:var(--acc)}
+  .ana{border-left:4px solid var(--acc2);background:#e9f7f4} .ana b{color:var(--acc2)}
+  .pit{border-left:4px solid var(--warn);background:#fdf3e6} .pit b{color:var(--warn)}
+  .code-link{border-left:4px solid var(--purple);background:#f3edfe} .code-link b{color:var(--purple)}
+  .read{border:1px dashed #c4cee0;background:#f7f9ff;border-radius:10px;padding:9px 14px;margin:14px 0;font-size:14px}
+  .read b{color:var(--acc)}
+  .formula{background:#eef3ff;border:1px solid #d4e0fb;border-radius:10px;padding:12px 16px;margin:12px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:14.5px;color:#1d3a7a;overflow-x:auto}
+  table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:#eaeff9;color:#1b2536}
+  tr:nth-child(even) td{background:#f6f8fc}
+  .pill{display:inline-block;background:#e6edfb;color:var(--acc);border-radius:999px;padding:1px 10px;font-size:12.5px;margin-right:6px}
+  .muted{color:var(--muted)}
+  .flow{width:100%;max-width:760px;margin:18px auto;display:block}
+  hr{border:none;border-top:1px solid var(--line);margin:40px 0}
+  .toc-top{font-size:13px;color:var(--muted);margin-top:30px}
+  details{margin:10px 0;border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:#f7f9fc}
+  summary{cursor:pointer;color:var(--acc2);font-weight:600}
+  .small{font-size:13.5px;color:var(--muted)}
+  .tl{background:#eef3ff;border-left:4px solid var(--acc);padding:8px 14px;border-radius:8px;margin:10px 0;font-size:15px}
+  .tl b{color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <div class="lead">📚 Study guide</div>
+  <div class="small">Multi-echelon → MDP → RL → Deep RL → PPO, tied to the code in this repo.</div>
+  <h2>Contents</h2>
+  <a href="#map">0 · The big picture (1 diagram)</a>
+  <a href="#me">1 · Multi-echelon inventory</a>
+  <a href="#mdp">2 · Markov Decision Processes</a>
+  <a href="#frame">3 · Framing inventory as an MDP</a>
+  <a href="#rl">4 · Reinforcement Learning</a>
+  <a href="#drl">5 · Deep RL — why neural nets</a>
+  <a href="#ppo">6 · PPO &amp; continuous actions</a>
+  <a href="#whydrl">7 · Why DRL for *this* problem</a>
+  <a href="#repo">8 · How our code embodies it</a>
+  <a href="#thread">9 · The single thread</a>
+  <a href="#glossary">Glossary</a>
+  <a href="#read">Reading list (short)</a>
+  <div class="toc-top"><a href="#top">↑ back to top</a></div>
+</nav>
+
+<main id="top">
+  <h1>From Multi-Echelon Inventory to Deep Reinforcement Learning</h1>
+  <p class="sub">A plain-language guide to every idea behind the Geevers&nbsp;et&nbsp;al.&nbsp;(2024) reproduction in this repo — and exactly where each idea lives in the code.</p>
+  <div class="box ana"><b>How to read this.</b> Each section builds on the last: the <i>problem</i> (inventory) → a <i>language</i> to describe it (MDP) → the <i>translation</i> (inventory written as an MDP) → a <i>solution method</i> (RL) → a <i>scaling trick</i> (neural nets = Deep RL) → the <i>exact algorithm</i> (PPO) → <i>why</i> this is the right tool → <i>where</i> it sits in our files. Watch for the coloured boxes: <b style="color:#2563eb">Key idea</b>, <b style="color:#0d9488">Analogy</b>, <b style="color:#7c3aed">In our code</b>, <b style="color:#b4690e">Pitfall</b>, and a dashed <b style="color:#2563eb">📖 Read more</b> with one short, trustworthy source per section. Nothing here changes your code.</p></div>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="map">0 · The big picture in one diagram</h2>
+  <p class="tl"><b>In one line:</b> five ideas nested like Russian dolls — each outer layer exists only to fix a weakness of the one inside it.</p>
+
+  <svg class="flow" viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="#2563eb"/>
+      </marker>
+    </defs>
+    <g font-size="13" fill="#1f2533">
+      <rect x="20" y="20" width="200" height="58" rx="10" fill="#f3f6fc" stroke="#cbd3e3"/>
+      <text x="120" y="44" text-anchor="middle" font-weight="700">Multi-echelon inventory</text>
+      <text x="120" y="62" text-anchor="middle" fill="#5c667c" font-size="11">the real business problem</text>
+
+      <rect x="280" y="20" width="200" height="58" rx="10" fill="#f3f6fc" stroke="#cbd3e3"/>
+      <text x="380" y="44" text-anchor="middle" font-weight="700">Markov Decision Process</text>
+      <text x="380" y="62" text-anchor="middle" fill="#5c667c" font-size="11">a math language for it</text>
+
+      <rect x="540" y="20" width="200" height="58" rx="10" fill="#f3f6fc" stroke="#cbd3e3"/>
+      <text x="640" y="44" text-anchor="middle" font-weight="700">Reinforcement Learning</text>
+      <text x="640" y="62" text-anchor="middle" fill="#5c667c" font-size="11">solve the MDP by trial</text>
+
+      <rect x="540" y="160" width="200" height="58" rx="10" fill="#f3f6fc" stroke="#cbd3e3"/>
+      <text x="640" y="184" text-anchor="middle" font-weight="700">Deep RL</text>
+      <text x="640" y="202" text-anchor="middle" fill="#5c667c" font-size="11">RL + neural networks</text>
+
+      <rect x="280" y="160" width="200" height="58" rx="10" fill="#f3f6fc" stroke="#cbd3e3"/>
+      <text x="380" y="180" text-anchor="middle" font-weight="700">PPO</text>
+      <text x="380" y="197" text-anchor="middle" fill="#5c667c" font-size="11">a stable DRL algorithm</text>
+
+      <rect x="20" y="160" width="200" height="58" rx="10" fill="#e8f7f1" stroke="#9fd8c4"/>
+      <text x="120" y="180" text-anchor="middle" font-weight="700" fill="#0d9488">This repo</text>
+      <text x="120" y="197" text-anchor="middle" fill="#5c667c" font-size="11">3 networks, 10 seeds</text>
+    </g>
+    <g stroke="#2563eb" stroke-width="2" fill="none">
+      <line x1="220" y1="49" x2="278" y2="49" marker-end="url(#arr)"/>
+      <line x1="480" y1="49" x2="538" y2="49" marker-end="url(#arr)"/>
+      <line x1="640" y1="78"  x2="640" y2="158" marker-end="url(#arr)"/>
+      <line x1="538" y1="189" x2="482" y2="189" marker-end="url(#arr)"/>
+      <line x1="280" y1="189" x2="222" y2="189" marker-end="url(#arr)"/>
+    </g>
+    <g font-size="10.5" fill="#5c667c">
+      <text x="249" y="40" text-anchor="middle">model as</text>
+      <text x="509" y="40" text-anchor="middle">solved by</text>
+      <text x="700" y="125" text-anchor="middle">scaled by</text>
+      <text x="510" y="150" text-anchor="middle">realised as</text>
+      <text x="251" y="150" text-anchor="middle">applied in</text>
+    </g>
+  </svg>
+
+  <table>
+    <tr><th>Layer</th><th>What it is</th><th>The weakness it fixes</th></tr>
+    <tr><td><b>Multi-echelon inventory</b></td><td>Decide replenishment orders across a network of stocking points so total holding + backorder cost is as low as possible.</td><td>—</td></tr>
+    <tr><td><b>MDP</b></td><td>A clean mathematical frame: states, actions, random transitions, rewards.</td><td>Turns a fuzzy business problem into something solvable.</td></tr>
+    <tr><td><b>RL</b></td><td>Learn a good policy by interacting with a simulator — no need to derive the demand/lead-time maths by hand.</td><td>Solving the MDP exactly is impossible at realistic sizes.</td></tr>
+    <tr><td><b>Deep RL</b></td><td>Use a neural network, not a lookup table, for the policy/value.</td><td>Tables blow up and can't generalise once states/actions get big or continuous.</td></tr>
+    <tr><td><b>PPO</b></td><td>A specific, stable policy-gradient algorithm whose action output is continuous.</td><td>Plain policy-gradient updates are unstable; discrete action heads don't scale.</td></tr>
+  </table>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="me">1 · Multi-echelon inventory optimization</h2>
+
+  <h3>1.1 The one trade-off everything orbits</h3>
+  <p>Every stocking location is caught between two costs:</p>
+  <ul>
+    <li><b>Hold too much</b> → you pay a <span class="pill">holding cost</span> <code>h</code> per unit each period (tied-up cash, space, spoilage).</li>
+    <li><b>Hold too little</b> → demand shows up that you can't fill → a <span class="pill">backorder cost</span> <code>b</code> per unit each period. The unfilled demand is <i>backlogged</i> (remembered and filled later), not lost.</li>
+  </ul>
+  <p>Good inventory management means sitting at the bottom of that U-shaped cost curve — <i>without</i> knowing future demand or exactly when shipments will land.</p>
+
+  <h3>1.2 "Echelon" = a level in the chain</h3>
+  <p>A product passes through several stocking <b>stages</b> before a customer buys it: factory → warehouse → depot → store. Each stage is an <b>echelon</b>. "Multi-echelon" means we optimise <i>all</i> stages <b>together</b>, rather than letting each location look after only itself.</p>
+  <div class="box ana"><b>Why "together" matters — the bullwhip effect.</b> If every stage reacts only to its own incoming orders, a small wobble in store demand gets amplified into wild swings at the factory. One coordinated decision-maker who sees the whole network smooths this out. <i>That coordinated decision-maker is exactly what our RL agent becomes.</i></div>
+
+  <h3>1.3 The vocabulary to own</h3>
+  <table>
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td><b>Stock point</b></td><td>A place that holds inventory. In the paper: warehouses <code>w</code> (upstream) and retailers <code>r</code> (downstream, where customers buy).</td></tr>
+    <tr><td><b>On-hand inventory</b></td><td>Units physically on the shelf right now.</td></tr>
+    <tr><td><b>Backorders</b></td><td>Demand that arrived but couldn't be filled yet — owed to a customer or downstream node.</td></tr>
+    <tr><td><b>In-transit / pipeline</b></td><td>Units already ordered and shipped but not yet arrived, because of <b>lead time</b>.</td></tr>
+    <tr><td><b>Lead time L</b></td><td>Periods between ordering and receiving. Fixed (=1) or random (Uniform{0..4} in the beer game).</td></tr>
+    <tr><td><b>Inventory position</b></td><td><code>on-hand + in-transit − backorders</code>. The number a good rule reacts to — it credits stock already on the way.</td></tr>
+    <tr><td><b>Base-stock (order-up-to) policy S</b></td><td>The classic rule: each period order <code>max(0, S − inventory&nbsp;position)</code> to refill up to a target <code>S</code>. Simple, often near-optimal — our <b>benchmark</b>.</td></tr>
+    <tr><td><b>Fill rate</b></td><td>Share of demand filled immediately from stock. CardBoard targets 98%.</td></tr>
+  </table>
+
+  <h3>1.4 Three network shapes (each harder than the last)</h3>
+  <table>
+    <tr><th>Shape</th><th>Definition</th><th>Our case</th></tr>
+    <tr><td><b>Linear / serial</b></td><td>A single chain — each node has one supplier and one customer.</td><td>Beer game: 4 nodes in a row.</td></tr>
+    <tr><td><b>Divergent</b></td><td>One node can supply <i>several</i> downstream nodes (a tree that only branches downward).</td><td>1 warehouse → 3 retailers.</td></tr>
+    <tr><td><b>General</b></td><td>Some node has <i>multiple suppliers</i> AND some node supplies multiple customers — a real mesh.</td><td>CardBoard: 4 mills, 5 plants, 14 directed edges, partly connected.</td></tr>
+  </table>
+  <p>It gets harder because the number of interacting decisions explodes, and in a general network an order can be <i>split</i> across suppliers — a combinatorial choice on top of "how much".</p>
+
+  <h3>1.5 The goal, precisely</h3>
+  <div class="formula">minimize  E[ Σ<sub>t</sub> ( Σ<sub>w</sub> (h<sub>w</sub>·I<sub>w,t</sub> + b<sub>w</sub>·BO<sub>w,t</sub>) + Σ<sub>r</sub> (h<sub>r</sub>·I<sub>r,t</sub> + b<sub>r</sub>·BO<sub>r,t</sub>) ) ]</div>
+  <p>Add up, over all time and all nodes, the holding cost on inventory plus the backorder cost on backlog. That single number — total expected cost — is what we drive down.</p>
+
+  <h3>1.6 Why it's genuinely hard</h3>
+  <ul>
+    <li><b>Too many situations:</b> the state is the inventory + pipeline + backorders of <i>every</i> node. With 9 nodes the number of distinct situations is astronomical.</li>
+    <li><b>Too many decisions:</b> you set an order for every node/edge at once — a huge joint choice (numbers in §7).</li>
+    <li><b>Randomness:</b> demand (and sometimes lead time) is uncertain, so you optimise an <i>average</i>, not a fixed value.</li>
+  </ul>
+  <p>Exact optimisation can't cope; hand-built heuristics work but must be re-derived per network shape. "A general method that needs no hand-derivation per network" is the gap RL fills.</p>
+  <div class="read"><b>📖 Read more:</b> <a href="https://en.wikipedia.org/wiki/Bullwhip_effect">Wikipedia — Bullwhip effect</a> (5-min read on why coordination matters), and the <a href="https://doi.org/10.1007/s10100-023-00872-2">Geevers et&nbsp;al. paper</a> §3 for the exact problem set-up.</div>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="mdp">2 · Markov Decision Processes — the language</h2>
+  <p class="tl"><b>In one line:</b> an MDP is the standard recipe-card for "make a sequence of decisions under uncertainty to optimise a long-run goal."</p>
+  <div class="formula">MDP = ( S , A , P , R , γ )</div>
+  <table>
+    <tr><th>Symbol</th><th>Name</th><th>Meaning</th></tr>
+    <tr><td><code>S</code></td><td>State space</td><td>All possible situations <code>s</code>.</td></tr>
+    <tr><td><code>A</code></td><td>Action space</td><td>All possible decisions <code>a</code>.</td></tr>
+    <tr><td><code>P(s'|s,a)</code></td><td>Transition</td><td>Chance of landing in <code>s'</code> after doing <code>a</code> in <code>s</code> — this is where randomness lives.</td></tr>
+    <tr><td><code>R(s,a)</code></td><td>Reward</td><td>Immediate payoff. We set <b>reward = −cost</b>, so maximising reward = minimising cost.</td></tr>
+    <tr><td><code>γ</code></td><td>Discount</td><td>A number in [0,1) (we use 0.99) weighting future vs present, and keeping the infinite sum finite.</td></tr>
+  </table>
+
+  <div class="box key"><b>The Markov property — the rule that makes it an MDP.</b> The next state and reward depend <i>only</i> on the current state and action, not the whole past. In practice: <i>the state must contain everything you need to act well.</i> If you'd want the pipeline to decide an order, the pipeline must be <b>inside</b> the state. Getting this right is the single most important modelling step (§3).</div>
+
+  <h3>2.1 Policy, return, value — three words you'll reuse constantly</h3>
+  <ul>
+    <li><b>Policy π</b> — the strategy: state → action (or a distribution over actions). <i>Solving the MDP = finding the best policy.</i></li>
+    <li><b>Return G<sub>t</sub></b> — the discounted total of future rewards: <code>G<sub>t</sub> = r<sub>t</sub> + γr<sub>t+1</sub> + γ²r<sub>t+2</sub> + …</code></li>
+    <li><b>Value V<sup>π</sup>(s)</b> — expected return if you start in <code>s</code> and follow <code>π</code>. "How good is this situation?"</li>
+    <li><b>Action-value Q<sup>π</sup>(s,a)</b> — expected return if you do <code>a</code> now, then follow <code>π</code>. "How good is this move?"</li>
+  </ul>
+  <div class="formula">π* = argmax<sub>π</sub>  E[ Σ<sub>t≥0</sub> γ<sup>t</sup> · r<sub>t</sub> ]      (= the policy with lowest expected discounted cost)</div>
+
+  <h3>2.2 The Bellman equation — the recursion under everything</h3>
+  <p>Value is self-referential: the value of now = the reward now + the discounted value of where you land next.</p>
+  <div class="formula">V<sup>π</sup>(s) = E[ r + γ·V<sup>π</sup>(s') ]      ;      Q*(s,a) = E[ r + γ·max<sub>a'</sub> Q*(s',a') ]</div>
+  <p>Classical dynamic programming solves this by sweeping the entire table of states — which is exactly what becomes impossible at scale, and why we <i>learn</i> instead of <i>compute</i>.</p>
+  <div class="read"><b>📖 Read more:</b> <a href="http://incompleteideas.net/book/the-book.html">Sutton &amp; Barto, <i>RL: An Introduction</i></a>, Ch.&nbsp;3 (MDPs) — the clearest short treatment, free online.</div>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="frame">3 · Translating inventory INTO an MDP</h2>
+  <p class="tl"><b>In one line:</b> pick four things — state, action, transition, reward — and the inventory problem becomes a concrete MDP any RL algorithm can attack.</p>
+
+  <h3>3.1 State — pack in enough to stay Markov</h3>
+  <p>To order well you must know what you have, what you owe, and what's coming. So the state vector glues together, across the network:</p>
+  <ul>
+    <li>total inventory and total backorders (summary numbers),</li>
+    <li>on-hand inventory per node,</li>
+    <li>backorders per node/edge,</li>
+    <li>in-transit (pipeline) amounts — per node, and for the linear case <i>per future arrival period</i> (its lead time can be up to 4),</li>
+    <li>recent demand (linear case).</li>
+  </ul>
+  <div class="box code-link"><b>In our code.</b> Any <code>_obs()</code> method in <code>envs.py</code> <i>is</i> the state vector. <code>GeneralEnv._obs()</code> builds <code>[Σinv, Σbackorders, inv-per-mill, inv-per-plant, backorder-per-edge, backorder-per-plant, in-transit-per-mill, in-transit-per-edge]</code> — the pipeline is included so the Markov property holds.</div>
+
+  <h4>Normalization (necessary, not cosmetic)</h4>
+  <p>Neural nets learn poorly when inputs have wildly different sizes. So each raw value is divided by an upper bound and squeezed into <code>[−1,1]</code> (or <code>[0,1]</code> for the general case).</p>
+  <div class="formula">obs = clip( raw_value / upper_bound , 0 , 1 ) · 2 − 1     (linear / divergent)</div>
+
+  <h3>3.2 Action — the order quantities</h3>
+  <p>Each period's decision is "how much does each node order from each supplier." The action is a vector of order quantities — one per <b>edge</b> (the general "order-per-edge" variant) or one per <b>node</b> (the simpler variant).</p>
+  <div class="box code-link"><b>In our code.</b> The action is a continuous vector in <code>[−1,1]</code>. <code>_scale_action()</code> maps each entry to <code>[0, upper_bound]</code> and rounds to whole units. The network outputs a number near 0; the env rescales it. <i>Why continuous?</i> — that's the punchline of §7.</div>
+
+  <h3>3.3 Transition — the simulator IS P(s'|s,a)</h3>
+  <p>We never write <code>P</code> as a formula; we <b>simulate</b> it. Each period a fixed run of events fires: receive arriving shipments → suppliers ship → warehouses ship to retailers (rationing when short) → place new orders → observe demand and backlog any shortfall. Randomness enters through the demand draw (and, in the linear case, the lead-time draw).</p>
+  <div class="box code-link"><b>In our code.</b> <code>_run_period()</code> in each env <i>is</i> the transition. One <code>env.step(action)</code> samples one <code>s → s'</code> and returns the reward. The agent learns <code>P</code> only <i>implicitly</i>, by living through thousands of steps.</div>
+
+  <h3>3.4 Reward — negative, scaled cost</h3>
+  <div class="formula">reward<sub>t</sub> = − ( total holding + total backorder cost )<sub>t</sub> / 1000</div>
+  <p>Negated so a maximiser minimises cost; divided by 1000 so the critic's targets aren't huge (a training-stability trick).</p>
+
+  <h3>3.5 Horizon &amp; episodes</h3>
+  <p>We want a <b>stationary</b> policy that's good "on average forever," so we train on an infinite horizon with <code>γ=0.99</code> and reset the simulator every 256 steps (one PPO buffer). For <i>evaluation</i> we run a fixed horizon (35 / 75 / 100 periods) and throw away a warm-up so the reported cost reflects steady state.</p>
+
+  <div class="box key"><b>The whole translation in one breath:</b> state = normalised (inventory, backorders, pipeline, demand); action = scaled order-per-edge; transition = the event-sequence simulator with random demand/lead-time; reward = −cost/1000. Once this mapping exists, <i>any</i> RL algorithm can be pointed at it.</div>
+  <div class="read"><b>📖 Read more:</b> <a href="https://gymnasium.farama.org/introduction/create_custom_env/">Gymnasium — "Create a custom environment"</a> shows the exact <code>reset()</code>/<code>step()</code>/<code>observation_space</code> pattern our <code>envs.py</code> follows.</div>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="rl">4 · Reinforcement Learning — solving by trial</h2>
+  <p class="tl"><b>In one line:</b> learn a good policy from experience — try, observe the reward, nudge the strategy toward what paid off — without ever being handed the answer or the equations of <code>P</code>.</p>
+  <div class="box ana"><b>Analogy.</b> You're not given the recipe. You cook the dish thousands of times, taste each result (reward), and gradually adjust. RL is structured trial-and-error with memory.</div>
+
+  <h3>4.1 Exploration vs exploitation</h3>
+  <p>To find good moves you must <b>explore</b> (try unfamiliar actions) but eventually <b>exploit</b> (use what works). Too little exploring → stuck in a mediocre habit; too much → never settle. In our method, exploration comes for free: the policy is a <i>probability distribution</i> that starts wide and sharpens as it learns.</p>
+
+  <h3>4.2 The three families</h3>
+  <table>
+    <tr><th>Family</th><th>Idea</th><th>Examples</th></tr>
+    <tr><td><b>Value-based</b></td><td>Learn <code>Q(s,a)</code>, then act greedily. The policy is implicit ("pick the highest-Q action").</td><td>Q-learning, SARSA, DQN</td></tr>
+    <tr><td><b>Policy-based</b></td><td>Parameterise the policy <code>π<sub>θ</sub></code> directly and push <code>θ</code> uphill on reward.</td><td>REINFORCE</td></tr>
+    <tr><td><b>Actor–critic</b></td><td>Both: an <b>actor</b> (policy) picks actions; a <b>critic</b> (value estimate) judges them to calm the actor's noisy updates.</td><td>A2C, A3C, <b>PPO</b></td></tr>
+  </table>
+
+  <h3>4.3 Tabular RL, and where it breaks</h3>
+  <p>The original beer-game solver (Chaharsooghi 2008 — our "RLOM" benchmark) used <b>tabular Q-learning</b>: a giant table with one row per state and one column per action. To keep it finite they <i>bucketed</i> each node's inventory into 9 levels — 9⁴ ≈ 6,561 states — and limited ordering to an "X+Y" rule.</p>
+  <div class="box pit"><b>Why tables collapse.</b> (1) <b>Size</b> — one cell per state×action; a general network has more than you could ever store. (2) <b>No generalization</b> — learning "inventory 100 is bad" teaches nothing about "inventory 101"; every cell is learned alone. (3) <b>Forced bucketing</b> — you crush a rich situation into coarse bins and lose information. Deep nets fix all three.</div>
+
+  <h3>4.4 On-policy vs off-policy (one line)</h3>
+  <p><b>Off-policy</b> (Q-learning, DQN) can learn from old or others' data. <b>On-policy</b> (PPO) learns from data made by the <i>current</i> policy — simpler and steadier, at some sample-efficiency cost. PPO is on-policy.</p>
+  <div class="read"><b>📖 Read more:</b> <a href="https://spinningup.openai.com/en/latest/spinningup/rl_intro.html">OpenAI Spinning Up — "Intro to RL, Part 1"</a> (the cleanest short tour of states/actions/policies/value).</div>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="drl">5 · Deep RL — swap the table for a network</h2>
+  <p class="tl"><b>In one line:</b> Deep RL is just RL where a <i>neural network</i> stands in for the table — so you can generalise across situations and handle huge or continuous spaces.</p>
+
+  <div class="box key"><b>The two superpowers a network buys you.</b><br>
+  1. <b>Generalization</b> — similar states give similar outputs automatically, so experience at one situation improves behaviour at nearby ones.<br>
+  2. <b>Scale &amp; continuity</b> — a fixed-size network maps an arbitrarily large (even continuous) state space to outputs; you never enumerate states or actions.</div>
+
+  <h3>5.1 What the network looks like here</h3>
+  <p>Two small fully-connected nets, each 2 hidden layers × 64 units with <code>tanh</code> activations (the paper's choice):</p>
+  <ul>
+    <li><b>Actor</b> <code>π<sub>θ</sub>(s)</code> → a <b>mean and spread (std) per action dimension</b> — a Gaussian for each edge's order. The action is <i>sampled</i> from it, then clipped to [−1,1].</li>
+    <li><b>Critic</b> <code>V<sub>φ</sub>(s)</code> → one number, the estimated value of the state, used to judge the actor.</li>
+  </ul>
+  <div class="box code-link"><b>In our code.</b> <code>train.py</code> builds exactly this with Stable-Baselines3: <code>net_arch=dict(pi=[64,64], vf=[64,64])</code>, <code>activation_fn=Tanh</code>, a Gaussian policy (the action space is a continuous <code>Box</code>), and <code>glorot_init()</code> for the paper's weight initialisation.</div>
+
+  <h3>5.2 Policy gradients, baselines, advantage</h3>
+  <p>Policy-gradient methods nudge the policy so high-return actions become more likely:</p>
+  <div class="formula">∇<sub>θ</sub> J ≈ E[ ∇<sub>θ</sub> log π<sub>θ</sub>(a|s) · A(s,a) ]</div>
+  <p>The <b>advantage</b> <code>A(s,a) = Q(s,a) − V(s)</code> asks "was this action better than the policy's average from here?" Subtracting the critic's baseline <code>V(s)</code> sharply cuts the noise in the gradient. The paper estimates it with <b>GAE(λ=0.95)</b>, which smoothly trades off bias and variance.</p>
+  <div class="read"><b>📖 Read more:</b> <a href="http://karpathy.github.io/2016/05/31/rl/">Karpathy — "Deep RL: Pong from Pixels"</a> (famous, friendly intro to policy gradients).</div>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="ppo">6 · PPO &amp; the continuous action space</h2>
+  <p class="tl"><b>In one line:</b> improve the policy, but never let one update move it too far — that single rule is what makes PPO stable and forgiving.</p>
+
+  <h3>6.1 The clipped objective</h3>
+  <p>Let <code>r(θ) = π<sub>θ</sub>(a|s) / π<sub>old</sub>(a|s)</code> measure how much more likely the new policy makes the action. PPO maximises:</p>
+  <div class="formula">L = E[ min( r·A , clip(r, 1−ε, 1+ε)·A ) ]      with ε = 0.2</div>
+  <p>If an update would change an action's probability by more than ±20%, the objective is <b>clipped</b> so there's no reward for pushing further — each step stays "proximal" (small). That's the whole trick behind PPO's stability, and why the paper picked it.</p>
+
+  <h3>6.2 One training iteration</h3>
+  <ol>
+    <li><b>Collect</b> 256 transitions by running the current policy in the simulator.</li>
+    <li><b>Estimate</b> advantages (GAE) and value targets for the critic.</li>
+    <li><b>Update</b> for 10 passes over the buffer in minibatches of 64: actor via the clipped objective, critic via squared value error, optimiser Adam at lr 1e-4.</li>
+  </ol>
+  <div class="box code-link"><b>In our code.</b> Every number is in the <code>PPO(...)</code> call in <code>train.py</code>: <code>n_steps=256, batch_size=64, n_epochs=10, gamma=0.99, gae_lambda=0.95, clip_range=0.2, learning_rate=1e-4</code> — copied from the paper's Table 4, deliberately <b>not</b> tuned.</div>
+
+  <h3>6.3 Why a Gaussian (continuous) action, not a softmax (discrete) one</h3>
+  <p>A discrete policy needs one output neuron per possible action. A continuous Gaussian needs just <b>two</b> numbers per dimension — a mean and a spread — no matter how many quantities are possible. So the output layer grows with the number of <i>edges</i>, not the number of <i>order combinations</i>. That difference is the linchpin — quantified next.</p>
+  <div class="read"><b>📖 Read more:</b> <a href="https://spinningup.openai.com/en/latest/algorithms/ppo.html">Spinning Up — PPO</a> (intuition + pseudocode), or the original <a href="https://arxiv.org/abs/1707.06347">PPO paper (arXiv:1707.06347)</a>.</div>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="whydrl">7 · Why DRL (and continuous actions) for THIS problem</h2>
+
+  <h3>7.1 The action-space explosion — the decisive argument</h3>
+  <p>Say each node orders an integer in <code>[0,30]</code> — 31 choices per node. A <b>discrete</b> action head needs one output neuron for every <i>joint</i> combination:</p>
+  <table>
+    <tr><th>Network</th><th>Decision dims</th><th>Discrete joint actions</th><th>Continuous outputs needed</th></tr>
+    <tr><td>Linear</td><td>4 nodes</td><td>31⁴ ≈ <b>9.2 × 10⁵</b></td><td>8 (mean+std × 4)</td></tr>
+    <tr><td>General (CardBoard)</td><td>18 edges</td><td>31¹⁸ ≈ <b>7 × 10²⁶</b></td><td>36 (mean+std × 18)</td></tr>
+  </table>
+  <p>A discrete output layer for the general case can't even be allocated in memory. A continuous Gaussian head needs ~36 numbers. <b>That is why the paper — and our reproduction — use a continuous action space with DRL.</b> It's the only thing that scales to a general network.</p>
+
+  <h3>7.2 The reasons, stacked</h3>
+  <table>
+    <tr><th>Need</th><th>Tabular RL</th><th>Deep RL (ours)</th></tr>
+    <tr><td>Huge / continuous <b>state</b></td><td>Must bucket; loses info; table too big</td><td>Network reads the raw normalised vector</td></tr>
+    <tr><td>Huge <b>action</b> space</td><td>One column per action — impossible</td><td>Outputs distribution params; grows linearly</td></tr>
+    <tr><td><b>Generalization</b></td><td>None — every cell independent</td><td>Built in — similar states → similar actions</td></tr>
+    <tr><td><b>General networks</b> with no re-derivation</td><td>n/a</td><td>Same algorithm, just swap the env</td></tr>
+  </table>
+
+  <h3>7.3 DRL vs the classical alternatives</h3>
+  <ul>
+    <li><b>Exact dynamic programming:</b> optimal in theory, intractable beyond toy sizes (the curses of dimensionality).</li>
+    <li><b>Heuristics (base-stock):</b> fast and often near-optimal, but need problem-specific derivation (e.g. Rong et al.'s only fits divergent networks). They're our benchmarks, not a general solver.</li>
+    <li><b>DRL:</b> one method, few assumptions, works on linear/divergent/general by swapping the environment. That <i>flexibility</i> is the paper's thesis — and our reproduction confirms it beats the benchmark on all three (while honestly flagging where the paper's stability story didn't replicate; see <code>REPORT.md</code>).</li>
+  </ul>
+  <div class="read"><b>📖 Read more:</b> Geevers et&nbsp;al. §4.4 (discrete vs continuous actions), and <a href="https://arxiv.org/abs/1904.12901">Dulac-Arnold et&nbsp;al., "Challenges of Real-World RL"</a> for why large action spaces are hard.</div>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="repo">8 · How our code embodies every layer</h2>
+  <table>
+    <tr><th>Concept (this guide)</th><th>Where it lives</th></tr>
+    <tr><td>MDP state <code>S</code></td><td><code>envs.py</code> → each env's <code>_obs()</code> (+ normalization by Table-6 bounds)</td></tr>
+    <tr><td>MDP action <code>A</code></td><td><code>envs.py</code> → <code>action_space</code> (continuous Box) + <code>_scale_action()</code></td></tr>
+    <tr><td>Transition <code>P</code></td><td><code>envs.py</code> → <code>_run_period()</code> (5-event simulator; random demand/lead time)</td></tr>
+    <tr><td>Reward <code>R</code></td><td><code>envs.py</code> → <code>step()</code> returns <code>−cost/1000</code></td></tr>
+    <tr><td>Actor &amp; critic nets</td><td><code>train.py</code> → <code>net_arch=[64,64]</code>, Tanh, Glorot init</td></tr>
+    <tr><td>PPO + hyperparameters</td><td><code>train.py</code> → the <code>PPO(...)</code> call (paper Table 4)</td></tr>
+    <tr><td>Benchmarks (base-stock)</td><td><code>envs.py</code> → <code>benchmark_action_raw()</code>; checked in <code>validate_benchmarks.py</code></td></tr>
+    <tr><td>Evaluation &amp; curves</td><td><code>train.py</code> → <code>evaluate()</code>; plotted by <code>analyze.py</code></td></tr>
+    <tr><td>Fill-rate analysis (Fig. 6)</td><td><code>eval_fillrate.py</code></td></tr>
+    <tr><td>Findings &amp; honest gaps</td><td><code>REPORT.md</code></td></tr>
+  </table>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="thread">9 · The single thread, end to end</h2>
+  <ol>
+    <li>A company holds stock at many linked locations and wants minimum total holding+backorder cost under random demand. <span class="muted">(§1)</span></li>
+    <li>That's a sequence of decisions under uncertainty → write it as an <b>MDP</b>. <span class="muted">(§2)</span></li>
+    <li>Make it concrete: state = normalised inventory/pipeline/backorders, action = scaled order-per-edge, transition = event simulator, reward = −cost/1000. <span class="muted">(§3)</span></li>
+    <li>Solving the MDP exactly is impossible, so <b>learn</b> a policy from simulated experience → <b>RL</b>. Tables can't handle the size/continuity. <span class="muted">(§4)</span></li>
+    <li>Put the policy &amp; value in <b>neural networks</b> → <b>Deep RL</b>: generalisation + scale, continuous actions via a Gaussian head. <span class="muted">(§5)</span></li>
+    <li>Use <b>PPO</b> — stable actor–critic with a clipped update — because the general network's discrete action set (31¹⁸) is impossible while its continuous head is tiny. <span class="muted">(§6–7)</span></li>
+    <li>Implement across linear / divergent / general, run 10 seeds, compare to base-stock benchmarks, report honestly. <span class="muted">(§8, REPORT.md)</span></li>
+  </ol>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="glossary">Glossary (quick recall)</h2>
+  <details><summary>Echelon</summary> One stocking stage in the chain. Multi-echelon = optimise all stages jointly.</details>
+  <details><summary>Holding / backorder cost</summary> Per-unit-per-period penalty for stock you hold / demand you can't meet.</details>
+  <details><summary>Inventory position</summary> on-hand + in-transit − backorders; what a base-stock rule tops up.</details>
+  <details><summary>Base-stock policy (S)</summary> Order up to a fixed target each period; the heuristic benchmark.</details>
+  <details><summary>Fill rate</summary> Share of demand served immediately from stock (CardBoard target = 98%).</details>
+  <details><summary>MDP</summary> (S, A, P, R, γ) — the formal frame for sequential decisions under uncertainty.</details>
+  <details><summary>Markov property</summary> Future depends only on current state+action ⇒ the state must hold all decision-relevant info.</details>
+  <details><summary>Policy π</summary> The strategy: state → action (or a distribution over actions).</details>
+  <details><summary>Value V(s) / Q(s,a)</summary> Expected discounted future reward from a state / state-action.</details>
+  <details><summary>Bellman equation</summary> value(now) = reward + γ·value(next); the recursion DP/RL exploit.</details>
+  <details><summary>Reinforcement learning</summary> Learn a policy from sampled interaction, no closed-form model needed.</details>
+  <details><summary>Exploration vs exploitation</summary> Try new actions vs use known-good ones.</details>
+  <details><summary>Tabular RL</summary> Store value in a table; breaks on large/continuous spaces, no generalisation.</details>
+  <details><summary>Deep RL / function approximation</summary> Use a neural net instead of a table → generalise &amp; scale.</details>
+  <details><summary>Actor–critic</summary> Actor = policy, critic = value baseline that lowers gradient noise.</details>
+  <details><summary>Advantage A(s,a)</summary> Q(s,a) − V(s): was this action better than average? GAE estimates it.</details>
+  <details><summary>Policy gradient</summary> Push policy params to make high-advantage actions more probable.</details>
+  <details><summary>PPO</summary> Policy gradient with a clipped objective so each update stays small &amp; stable.</details>
+  <details><summary>Continuous action space</summary> Output a Gaussian (mean,std) per dimension; scales linearly with #edges vs exponentially for discrete.</details>
+  <details><summary>γ (discount)</summary> Weights future vs present reward; we use 0.99.</details>
+
+  <!-- ============================================================= -->
+  <h2 class="sec" id="read">Reading list (short &amp; worth it)</h2>
+  <p>Five sources, in increasing depth — you don't need more than these to understand this whole repo.</p>
+  <table>
+    <tr><th>If you want…</th><th>Read</th><th>Length</th></tr>
+    <tr><td>Why coordination matters in supply chains</td><td><a href="https://en.wikipedia.org/wiki/Bullwhip_effect">Wikipedia — Bullwhip effect</a></td><td>5 min</td></tr>
+    <tr><td>A gentle, visual RL course</td><td><a href="https://huggingface.co/learn/deep-rl-course">Hugging Face — Deep RL Course</a></td><td>a weekend</td></tr>
+    <tr><td>The clearest RL fundamentals</td><td><a href="http://incompleteideas.net/book/the-book.html">Sutton &amp; Barto</a> — Ch. 3 (MDPs), 6 (TD), 13 (policy gradients)</td><td>3 chapters</td></tr>
+    <tr><td>Concise algorithm intuition + code</td><td><a href="https://spinningup.openai.com/">OpenAI Spinning Up</a> — "Intro to RL" + "PPO"</td><td>2 hrs</td></tr>
+    <tr><td>This exact application</td><td><a href="https://doi.org/10.1007/s10100-023-00872-2">Geevers, van Hezewijk &amp; Mes (2024)</a> + this repo's <code>REPORT.md</code></td><td>the paper</td></tr>
+  </table>
+
+  <hr>
+  <p class="small">A companion to the reproduction in this repository. Self-contained — no internet needed to view (the links are optional further reading). Nothing here modifies the experiment code.</p>
+</main>
+</div>
+</body>
+</html>

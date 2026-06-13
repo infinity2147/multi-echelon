@@ -16,3 +16,6 @@ fig1c_general_network.png
 
 # Run logs
 logs/
+
+# macOS
+.DS_Store
